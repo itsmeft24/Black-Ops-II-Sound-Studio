@@ -2,6 +2,15 @@
 
 namespace BlackOps2SoundStudio.Format
 {
+    class SndAssetBankEntryT8 : SndAssetBankEntryT7
+    {
+        public new ulong Identifier;
+
+        public new long Pad;
+
+        public uint Unknown2;
+    }
+
     class SndAssetBankEntryT7 : SndAssetBankEntryT6
     {
         public int Pad { get; set; }

@@ -30,7 +30,7 @@ namespace BlackOps2SoundStudio.Format
                 throw new BadImageFormatException("Invalid magic value detected, ensure that the file is valid.");
 
             // Check the version.
-            var supportedVersions = new[] {SndAliasConstants.Version_T6, SndAliasConstants.Version_T7, SndAliasConstants.Version_IW7};
+            var supportedVersions = new[] {SndAliasConstants.Version_T6, SndAliasConstants.Version_T7, SndAliasConstants.Version_T8, SndAliasConstants.Version_IW7};
             if (!supportedVersions.Contains(_sndAliasBank.Version = _reader.ReadInt32()))
                 throw new BadImageFormatException("Invalid version detected, expected [" + string.Join(", ", supportedVersions.Select(i => i.ToString())) + "] but got: " + _sndAliasBank.Version);
 
@@ -42,6 +42,9 @@ namespace BlackOps2SoundStudio.Format
                     break;
                 case SndAliasConstants.Version_T7:
                     sizeOfAudioEntry = SndAliasConstants.SizeOfAudioEntry_T7;
+                    break;
+                case SndAliasConstants.Version_T8:
+                    sizeOfAudioEntry = SndAliasConstants.SizeOfAudioEntry_T8;
                     break;
                 case SndAliasConstants.Version_IW7:
                     sizeOfAudioEntry = SndAliasConstants.SizeOfAudioEntry_IW7;
@@ -100,6 +103,8 @@ namespace BlackOps2SoundStudio.Format
             // Read the audio entries.
             _stream.Position = _sndAliasBank.OffsetOfEntries;
             _sndAliasBank.Entries = new List<SndAssetBankEntry>();
+            if (_sndAliasBank.Version == SndAliasConstants.Version_T8)
+                ReadEntriesT8(entryCount);
             if (_sndAliasBank.Version == SndAliasConstants.Version_T7)
                 ReadEntriesT7(entryCount);
             else if (_sndAliasBank.Version == SndAliasConstants.Version_T6)
@@ -198,6 +203,28 @@ namespace BlackOps2SoundStudio.Format
             }
         }
 
+        private void ReadEntriesT8(int entryCount) 
+        {
+            for (int i = 0; i < entryCount; i++)
+            {
+                var entry = new SndAssetBankEntryT8
+                {
+                    Identifier = _reader.ReadUInt64(),
+                    Pad = _reader.ReadInt64(),
+                    Offset = _reader.ReadInt64(),
+                    Size = _reader.ReadInt32(),
+                    SampleCount = _reader.ReadInt32(),
+                    Unknown = _reader.ReadInt64(),
+                    SampleRateFlag = _reader.ReadByte(),
+                    ChannelCount = _reader.ReadByte(),
+                    Loop = _reader.ReadBoolean(),
+                    Format = (AudioFormat)_reader.ReadByte(),
+                    Unknown2 = _reader.ReadUInt32()
+                };
+                entry.Data = new AudioDataStream(_stream, entry.Size, entry.Offset);
+                _sndAliasBank.Entries.Add(entry);
+            }
+        }
         private void ReadEntriesT7(int entryCount)
         {
             for (int i = 0; i < entryCount; i++)
